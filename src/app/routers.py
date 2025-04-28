@@ -1,15 +1,17 @@
 import os
-from fastapi import APIRouter, HTTPException
-from typing import Dict, Any, List
+from fastapi import APIRouter, HTTPException, Path
+from typing import Dict, Any, List, Annotated
 from dotenv import load_dotenv
 
-from src.app.repository import OrderRepo, MenuRepo, OrderItemRepo
-from src.app.schemas import OrderSchema, MenuItemSchema, OrderItemSchema, OrdersSchema, MenuItemsSchema
-from src.app.service import OrderService, MenuService, OrderItemService
+from src.app.repositories import OrderRepo, MenuRepo, OrderItemRepo
+from src.app.schemas import OrderBaseSchema, MenuItemSchema, OrderItemSchema, OrdersSchema, MenuItemsSchema, OrderSchema
+from src.app.services import CommonService
 
 load_dotenv()
 
 router = APIRouter()
+
+pk_type = Annotated[int, Path(ge=1, lt=1_000_000)]
 
 
 @router.get(path="/",
@@ -23,9 +25,8 @@ async def order_list() -> Dict[str, Any]:
 
     :возврат: html-страница списка заказов.
     """
-    order_list = await OrderService(OrderRepo).get_all(OrdersSchema())
+    order_list = await CommonService(OrderRepo).get_all(OrdersSchema())
     print(f"order_list order_list: {order_list}")
-    history_dict = {"message": "new order"}
     return order_list
 
 
@@ -46,21 +47,20 @@ async def order_create() -> Dict[str, Any]:
 
 
 @router.post(path="/new/",
-             response_model=OrderSchema,
+             response_model=OrderBaseSchema,
              tags=["Страница отображения списка заказов"],
              summary="order_create",
              )
-async def order_create(request: OrderSchema) -> Dict[str, Any]:
+async def order_create(request: OrderBaseSchema) -> Dict[str, Any]:
     """
     Функция создания заказа.
 
     :возврат: html-страница списка заказов.
     """
     print(f"order_create request: {request}")
-    order_id = await OrderService(OrderRepo).add_one(request)
-    order_dict = await OrderService(OrderRepo).get_one(order_id)
+    order_id = await CommonService(OrderRepo).add_one(request)
+    order_dict = await CommonService(OrderRepo).get_one(order_id)
     print(f"order_create order_dict: {order_dict}")
-    history_dict = {"message": "new order"}
     return order_dict
 
 
@@ -85,15 +85,17 @@ async def revenue_report() -> Dict[str, Any]:
              tags=["Страница отображения списка заказов"],
              summary="order_item_add",
              )
-async def order_item_add(request: OrderItemSchema, pk: int) -> Dict[str, Any]:
+async def order_item_add(request: OrderItemSchema, pk: pk_type) -> Dict[str, Any]:
     """
     Функция создания заказа.
 
     :возврат: html-страница списка заказов.
     """
     print(f"order_item_add pk: {pk}, request: {request}")
-    order_item_id = await OrderItemService(OrderItemRepo).add_one(request)
-    order_item_dict = await OrderItemService(OrderItemRepo).get_one(order_item_id)
+    request.order_id = pk
+    print(f"order_item_add request: {request}")
+    order_item_id = await CommonService(OrderItemRepo).add_one(request)
+    order_item_dict = await CommonService(OrderItemRepo).get_one(order_item_id)
     print(f"order_item_add order_item_dict: {order_item_dict}")
     return order_item_dict
 
@@ -103,7 +105,7 @@ async def order_item_add(request: OrderItemSchema, pk: int) -> Dict[str, Any]:
              tags=["Страница отображения списка заказов"],
              summary="order_item_delete",
              )
-async def order_item_delete(request, pk: int) -> Dict[str, Any]:
+async def order_item_delete(request, pk: pk_type) -> Dict[str, Any]:
     """
     Функция создания заказа.
 
@@ -125,9 +127,8 @@ async def menu_item_list() -> Dict[str, Any]:
 
     :возврат: html-страница списка заказов.
     """
-    menu_item = await MenuService(MenuRepo).get_all(MenuItemsSchema())
+    menu_item = await CommonService(MenuRepo).get_all(MenuItemsSchema())
     print(f"order_list menu_item: {menu_item}")
-    history_dict = {"message": "new order"}
     return menu_item
 
 
@@ -159,8 +160,8 @@ async def menu_item_create(request: MenuItemSchema) -> Dict[str, Any]:
     """
 
     print(f"menu_item_create request: {request}")
-    menu_item_id = await MenuService(MenuRepo).add_one(request)
-    menu_item_dict = await MenuService(MenuRepo).get_one(menu_item_id)
+    menu_item_id = await CommonService(MenuRepo).add_one(request)
+    menu_item_dict = await CommonService(MenuRepo).get_one(menu_item_id)
     print(f"menu_item_create menu_item_dict: {menu_item_dict}")
     return menu_item_dict
 
@@ -170,7 +171,7 @@ async def menu_item_create(request: MenuItemSchema) -> Dict[str, Any]:
             tags=["Страница отображения списка заказов"],
             summary="order_detail",
             )
-async def order_detail(pk: int) -> Dict[str, Any]:
+async def order_detail(pk: pk_type) -> Dict[str, Any]:
     """
     Функция создания заказа.
 
@@ -186,7 +187,7 @@ async def order_detail(pk: int) -> Dict[str, Any]:
             tags=["Страница отображения списка заказов"],
             summary="order_update",
             )
-async def order_update(pk: int) -> Dict[str, Any]:
+async def order_update(pk: pk_type) -> Dict[str, Any]:
     """
     Функция создания заказа.
 
@@ -202,7 +203,7 @@ async def order_update(pk: int) -> Dict[str, Any]:
             tags=["Страница отображения списка заказов"],
             summary="order_update",
             )
-async def order_update(request, pk: int) -> Dict[str, Any]:
+async def order_update(request, pk: pk_type) -> Dict[str, Any]:
     """
     Функция создания заказа.
 
@@ -218,7 +219,7 @@ async def order_update(request, pk: int) -> Dict[str, Any]:
             tags=["Страница отображения списка заказов"],
             summary="order_delete",
             )
-async def order_delete(request, pk: int) -> Dict[str, Any]:
+async def order_delete(request, pk: pk_type) -> Dict[str, Any]:
     """
     Функция создания заказа.
 

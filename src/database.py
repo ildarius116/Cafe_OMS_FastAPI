@@ -1,21 +1,21 @@
-import os
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.pool import NullPool
-from dotenv import load_dotenv
 from typing import AsyncGenerator
 
+from src.core.config import settings
 
-Base = declarative_base()
 
-load_dotenv()
-DATABASE_URL = os.getenv('DATABASE_URL', "sqlite+aiosqlite:///./cafe.db")
-DEBUG = os.getenv('DEBUG', False)
+class Base(DeclarativeBase):
+    __abstract__ = True
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
 
 engine: AsyncEngine = create_async_engine(
-    DATABASE_URL,
+    url=settings.db_url,
     poolclass=NullPool,
-    echo=eval(DEBUG)
+    echo=settings.debug
 )
 
 async_session = async_sessionmaker(

@@ -3,14 +3,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import Optional, List
 from datetime import datetime
 
-from src.app.schemas import MenuItemSchema, OrderItemSchema, OrderSchema
+from src.app.schemas import MenuItemSchema, OrderItemSchema, OrderBaseSchema
 from src.database import Base
 
 
 class MenuItemModel(Base):
     __tablename__ = 'menu_item'
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(42))
     price: Mapped[Optional[float]] = mapped_column(Numeric(8, 1), name='Цена')
 
@@ -24,7 +23,10 @@ class MenuItemModel(Base):
         )
 
     def __repr__(self) -> str:
-        return f"<Menu_item(id={self.id}, name={self.name}, price={self.price})>"
+        return (f"<Menu_item(id={self.id}, "
+                f"name={self.name}, "
+                f"price={self.price})>"
+                )
 
     class Meta:
         name: str = 'Блюдо'
@@ -41,7 +43,6 @@ class OrderModel(Base):
         ),
     )
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     table_number: Mapped[int]
     total_price: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     status: Mapped[str] = mapped_column(String(10), default='pending')
@@ -53,10 +54,6 @@ class OrderModel(Base):
         cascade='all, delete-orphan'
     )
 
-    @property
-    def items(self) -> List[MenuItemModel]:
-        return [oi.menu_item for oi in self.order_items]
-
     def calculate_total(self) -> float:
         return sum(item.price for item in self.order_items.all()) if self.pk else 0
 
@@ -66,32 +63,33 @@ class OrderModel(Base):
         return super().save(*args, **kwargs)
 
     def to_read_model(self):
-        return OrderSchema(
+        return OrderBaseSchema(
             id=self.id,
             table_number=self.table_number,
-            # order_items=self.order_items,
+            order_items=[item.to_read_model() for item in self.order_items] if self.order_items else [],
             total_price=self.total_price,
             status=self.status,
             created_at=self.created_at,
             updated_at=self.updated_at,
         )
 
-    def __repr__(self) -> str:
-        return f"<Order(id={self.id}, items={self.order_items}, total_price={self.total_price}, status={self.status})>"
+    def __repr__(self):
+        return (f"Order(id={self.id}, table_number={self.table_number}, "
+                f"total_price={self.total_price}, status={self.status}, "
+                f"created_at={self.created_at}, updated_at={self.updated_at})")
 
 
 class OrderItemModel(Base):
     __tablename__ = 'order_item'
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey('order.id'))
     menu_item_id: Mapped[int] = mapped_column(ForeignKey('menu_item.id'))
     price: Mapped[Optional[float]] = mapped_column(Numeric(8, 2), name='Цена')
     quantity: Mapped[int] = mapped_column(default=1)  # Добавляем quantity
 
     # Связи
-    order: Mapped[OrderModel] = relationship(back_populates='order_items')
-    menu_item: Mapped[MenuItemModel] = relationship(back_populates='order_items')
+    order: Mapped['OrderModel'] = relationship(back_populates='order_items')
+    menu_item: Mapped['MenuItemModel'] = relationship(back_populates='order_items')
 
     def save(self, *args, **kwargs):
         self.price = self.menu_item.price * self.quantity
@@ -104,10 +102,13 @@ class OrderItemModel(Base):
             order_id=self.order_id,
             menu_item_id=self.menu_item_id,
             price=self.price,
+            quantity=self.quantity,
+            # menu_item=self.menu_item.to_read_model() if self.menu_item else None,
         )
 
     def __repr__(self) -> str:
         return (f"<Order_item(id={self.id}, "
                 f"order_id={self.order_id}, "
                 f"menu_item_id={self.menu_item_id}, "
-                f"price={self.price})>")
+                f"price={self.price})>"
+                )

@@ -12,12 +12,12 @@ class MenuItemSchema(BaseModel):
 
 
 class MenuItemsSchema(BaseModel):
-    menu_items: Optional[List[MenuItemSchema]] = None
+    lists: Optional[List[MenuItemSchema]] = None
 
 
 class OrderItemSchema(BaseModel):
-    order: int
-    menu_item: int
+    order_id: int
+    menu_item_id: int
     quantity: Optional[int]
     price: Optional[float]
 
@@ -25,8 +25,7 @@ class OrderItemSchema(BaseModel):
         from_attributes = True
 
 
-class OrderSchema(BaseModel):
-    id: int
+class OrderBaseSchema(BaseModel):
     table_number: int = Field(ge=1, le=100, description="Номер стола")
     order_items: Optional[List[OrderItemSchema]] = None
     total_price: Optional[float] = Field(0, ge=0, description="Общая стоимость")
@@ -38,5 +37,9 @@ class OrderSchema(BaseModel):
         from_attributes = True
 
 
+class OrderSchema(OrderBaseSchema):
+    id: int
+
+
 class OrdersSchema(BaseModel):
-    orders: Optional[List[OrderSchema]] = None
+    lists: Optional[List[OrderSchema]] = None

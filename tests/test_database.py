@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, Dict
 
 from src.app.repositories import MenuRepo, OrderItemRepo, OrderRepo
-from src.app.services import MenuService, OrderItemService, OrderService
+from src.app.services import MenuService, OrderItemService, CommonService
 
 
 @pytest.mark.asyncio
